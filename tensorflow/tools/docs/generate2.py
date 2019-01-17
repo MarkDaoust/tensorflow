@@ -28,6 +28,7 @@ from __future__ import division
 from __future__ import print_function
 
 from os import path
+import inspect
 
 from absl import app
 from absl import flags
@@ -35,6 +36,15 @@ from absl import flags
 import tensorflow as tf
 
 from tensorflow_docs.api_generator import generate_lib
+from tensorflow_docs.api_generator import doc_generator_visitor
+
+from tensorflow.python.util import tf_export
+from tensorflow.python.util import tf_inspect
+
+from tensorflow_docs.api_generator import parser
+
+parser.tf_inspect = tf_inspect
+tf.__all__ = [name for name,_ in inspect.getmembers(tf)]
 
 FLAGS = flags.FLAGS
 
@@ -51,6 +61,21 @@ flags.DEFINE_bool("search_hints", True,
                   "Include meta-data search hints at the top of each file.")
 
 
+
+class TfExportAwareDocGeneratorVisitor(
+    doc_generator_visitor.DocGeneratorVisitor):
+  """A `tf_export` aware doc_visitor."""
+
+  def _score_name(self, name):
+    canonical = tf_export.get_canonical_name_for_symbol(self._index[name])
+
+    canonical_score = 1
+    if canonical is not None and name == 'tf.' + canonical:
+      canonical_score = -1
+
+    scores = super(TfExportAwareDocGeneratorVisitor, self)._score_name(name)
+    return (canonical_score,) + scores
+
 def build_docs(output_dir, code_url_prefix, search_hints=True):
   """Build api docs for tensorflow v2.
 
@@ -66,7 +91,8 @@ def build_docs(output_dir, code_url_prefix, search_hints=True):
       base_dir=base_dir,
       search_hints=search_hints,
       code_url_prefix=code_url_prefix,
-      site_path="api_docs/")
+      site_path="api_docs/",
+      visitor_cls=TfExportAwareDocGeneratorVisitor)
 
   doc_generator.build(output_dir)
 
