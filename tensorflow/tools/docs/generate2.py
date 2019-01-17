@@ -60,7 +60,8 @@ flags.DEFINE_string(
 flags.DEFINE_bool("search_hints", True,
                   "Include meta-data search hints at the top of each file.")
 
-
+flags.DEFINE_string("site_path", "",
+                    "Include meta-data search hints at the top of each file.")
 
 class TfExportAwareDocGeneratorVisitor(
     doc_generator_visitor.DocGeneratorVisitor):
@@ -91,7 +92,7 @@ def build_docs(output_dir, code_url_prefix, search_hints=True):
       base_dir=base_dir,
       search_hints=search_hints,
       code_url_prefix=code_url_prefix,
-      site_path="api_docs/",
+      site_path=FLAGS.site_path,
       visitor_cls=TfExportAwareDocGeneratorVisitor)
 
   doc_generator.build(output_dir)
